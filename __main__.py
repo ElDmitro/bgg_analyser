@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from collections import defaultdict
@@ -109,12 +110,14 @@ ANALYSIS_SLICE_K = 15
 
 
 def main():
-    username = None
-    snapshot_path = None
-    game_id = None
-    analys_slice = 15
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-u', type=str, help='Username for which suggest')
+    parser.add_argument('-g', type=str, help='GameId for which find experts')
+    parser.add_argument('--snapshot-dir', type=str, default='snapshot', help='Snapshot directory path')
+    args = parser.parse_args()
 
-    #TODO: you pick-uped this game print
+    username, game_id = args.u, args.g
+    snapshot_path = args.snapshot_dir
 
     games = load_struct(GAMES_FILENAME, snapshot_path)
     users_rating = load_struct(RATINGS_FILENAME, snapshot_path)
@@ -147,6 +150,10 @@ def main():
     else:
         print('\n\n!!! Your passed unknown user !!!\n\n', file=sys.stdout)
         page_ranks = [(user, page_rank, None) for user, page_rank in page_ranks]
+
+    for game in games:
+        if game.id == game_id:
+            print(game, file=sys.stdout)
 
     for forum in ('News', 'Reviews', 'Strategy'):
         print('!!!', forum, '!!!', file=sys.stdout)
