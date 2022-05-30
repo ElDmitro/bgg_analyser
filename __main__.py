@@ -1,7 +1,11 @@
+import os
 import sys
 from collections import defaultdict
 from operator import itemgetter
 
+import pandas as pd
+import numpy as np
+from numpy.linalg import norm
 from scipy.special import softmax
 
 import networkx as nx
@@ -11,6 +15,8 @@ from bgg_client.utils.serialization import dump_struct, load_struct
 
 GAMES_FILENAME = 'games.pkl'
 RATINGS_FILENAME = 'users_rating.pkl'
+LFM_MAP_FILENAME_FORMAT = 'cf__{}_mapping'
+LFM_PREFIX = 'cf'
 
 
 FIRST_OP, SECOND_OP = itemgetter(0), itemgetter(1)
@@ -74,33 +80,52 @@ def construct_reply_edges(games, users_rating, forum_weight=FORUM_WEIGHT):
 
     return edges
 
-def pack_user_threads():
-#TODO:
-    users_threads = defaultdict( # User
-        lambda: defaultdict( # Game
-            lambda: defaultdict( # Forum
-                list # Threads
-            )
-        )
-    )
-
+def pack_user_threads(games):
+    users_threads = defaultdict(lambda: defaultdict(
+        lambda: defaultdict(list)
+    ))
     for game in games:
         for title, forum in game.items():
             for thread in forum.threads:
                 users_threads[thread.author][game.id][title] += [thread.id]
 
+    return users_threads
+
+def pop_forum_user(ranks, user_threads, game_id, title, k):
+    it, k_it = 0, 0
+    result = list()
+    while (it < len(user_threads)) and (k_it < k):
+        user = FIRST_OP(ranks[it])
+        if user_threads[user][game_id][title]:
+            result.append(ranks.pop(it)); k_it += 1
+            continue
+        it += 1
+
+    return result
+
+
+FORUM_TOP_K = 2
+ANALYSIS_SLICE_K = 15
+
 
 def main():
+    username = None
     snapshot_path = None
     game_id = None
-    topk = None
+    analys_slice = 15
 
     #TODO: you pick-uped this game print
 
     games = load_struct(GAMES_FILENAME, snapshot_path)
     users_rating = load_struct(RATINGS_FILENAME, snapshot_path)
-    users_threads = None #TODO
+    users_threads = pack_user_threads(games)
     edges = construct_reply_edges(games, users_rating)
+
+    lfm = LatentFactorModel(64, 1.0, 1.0, 1000)
+    lfm.load_hidden_stat(os.path.join(snapshot_path, LFM_PREFIX))
+    users_map = load_struct(LFM_MAP_FILENAME_FORMAT.format('users'), snapshot_path)
+    bg_map = load_struct(LFM_MAP_FILENAME_FORMAT.format('items'), snapshot_path)
+    users_hidden = pd.DataFrame(lfm.user_hidden, index=users_map.index)
 
     graph = nx.DiGraph()
     for edge, weight in edges[game_id].items():
@@ -109,18 +134,27 @@ def main():
 
     page_ranks = nx.pagerank(graph)
     page_ranks = sorted(page_ranks.items(), key=SECOND_OP, reverse=True)
+    if ANALYSIS_SLICE_K is not None:
+        page_ranks = page_ranks[:ANALYSIS_SLICE_K]
 
-    for user, page_rank in page_ranks[:k]:
-        print('###', user, f'Page Rank: {page_rank:3.f}', file=sys.stdout)
-        print_thread_links(users_threads, user, GAME_ID, stream=sys.stdout)
-        print('-' * 50, '\n', file=sys.stdout)
+    if username in users_map.index:
+        experts = [user for user, _ in page_ranks]
+        experts_hidden = users_hidden.loc[experts].values
+        user_hidden = users_hidden.loc[username].values
+        similarities = (expert_hidden @ user_hidden) / norm(expert_hidden, axis=1) / norm(user_hidden)
+        page_ranks = [(user, page_rank, similarity) for (user, page_rank), similarity in zip(page_ranks, similarities)]
+        page_ranks = sorted(page_ranks, key=itemgetter(2), reverse=True)
+    else:
+        print('\n\n!!! Your passed unknown user !!!\n\n', file=sys.stdout)
+        page_ranks = [(user, page_rank, None) for user, page_rank in page_ranks]
 
-
-
-
-
-
-
+    for forum in ('News', 'Reviews', 'Strategy'):
+        print('!!!', forum, '!!!', file=sys.stdout)
+        users_page_ranks = pop_forum_users(page_ranks, users_threads, forum, FORUM_TOP_K)
+        for user, page_rank, similarity in users:
+            print('###', user, f'Page Rank: {page_rank:3.f}', f'Attitude Similarity: {similarity:3.f}', file=sys.stdout)
+            print_thread_links(users_threads, user, GAME_ID, stream=sys.stdout)
+            print('-' * 50, '\n', file=sys.stdout)
 
 
 if __name__ == '__main__':
