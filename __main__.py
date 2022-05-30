@@ -12,6 +12,7 @@ from scipy.special import softmax
 import networkx as nx
 
 from bgg_client.utils.serialization import dump_struct, load_struct
+from collaborative_filtering import LatentFactorModel
 
 
 GAMES_FILENAME = 'games.pkl'
@@ -92,10 +93,10 @@ def pack_user_threads(games):
 
     return users_threads
 
-def pop_forum_user(ranks, user_threads, game_id, title, k):
+def pop_forum_users(ranks, user_threads, game_id, title, k):
     it, k_it = 0, 0
     result = list()
-    while (it < len(user_threads)) and (k_it < k):
+    while (it < len(ranks)) and (k_it < k):
         user = FIRST_OP(ranks[it])
         if user_threads[user][game_id][title]:
             result.append(ranks.pop(it)); k_it += 1
@@ -126,14 +127,13 @@ def main():
 
     lfm = LatentFactorModel(64, 1.0, 1.0, 1000)
     lfm.load_hidden_stat(os.path.join(snapshot_path, LFM_PREFIX))
-    users_map = load_struct(LFM_MAP_FILENAME_FORMAT.format('users'), snapshot_path)
-    bg_map = load_struct(LFM_MAP_FILENAME_FORMAT.format('items'), snapshot_path)
+    users_map = load_struct(LFM_MAP_FILENAME_FORMAT.format('user'), snapshot_path)
+    bg_map = load_struct(LFM_MAP_FILENAME_FORMAT.format('item'), snapshot_path)
     users_hidden = pd.DataFrame(lfm.user_hidden, index=users_map.index)
 
     graph = nx.DiGraph()
     for edge, weight in edges[game_id].items():
         graph.add_edge(FIRST_OP(edge), SECOND_OP(edge), weight=weight)
-    graph_stat(graph, stream=sys.stdout)
 
     page_ranks = nx.pagerank(graph)
     page_ranks = sorted(page_ranks.items(), key=SECOND_OP, reverse=True)
@@ -144,24 +144,30 @@ def main():
         experts = [user for user, _ in page_ranks]
         experts_hidden = users_hidden.loc[experts].values
         user_hidden = users_hidden.loc[username].values
-        similarities = (expert_hidden @ user_hidden) / norm(expert_hidden, axis=1) / norm(user_hidden)
+        similarities = (experts_hidden @ user_hidden) / norm(experts_hidden, axis=1) / norm(user_hidden)
         page_ranks = [(user, page_rank, similarity) for (user, page_rank), similarity in zip(page_ranks, similarities)]
         page_ranks = sorted(page_ranks, key=itemgetter(2), reverse=True)
     else:
         print('\n\n!!! Your passed unknown user !!!\n\n', file=sys.stdout)
-        page_ranks = [(user, page_rank, None) for user, page_rank in page_ranks]
+        page_ranks = [(user, page_rank, 0.0) for user, page_rank in page_ranks]
 
     for game in games:
         if game.id == game_id:
+            print('-' * 30, 'GAME DESCRIPTION', '-' * 30, file=sys.stdout)
             print(game, file=sys.stdout)
+            print('-' * 90, file=sys.stdout)
+
+    graph_stat(graph, stream=sys.stdout)
 
     for forum in ('News', 'Reviews', 'Strategy'):
-        print('!!!', forum, '!!!', file=sys.stdout)
-        users_page_ranks = pop_forum_users(page_ranks, users_threads, forum, FORUM_TOP_K)
-        for user, page_rank, similarity in users:
-            print('###', user, f'Page Rank: {page_rank:3.f}', f'Attitude Similarity: {similarity:3.f}', file=sys.stdout)
-            print_thread_links(users_threads, user, GAME_ID, stream=sys.stdout)
-            print('-' * 50, '\n', file=sys.stdout)
+        print('\n\n', '-' * 40, forum.upper(), '-' * 40, file=sys.stdout)
+        users_page_ranks = pop_forum_users(page_ranks, users_threads, game_id, forum, FORUM_TOP_K)
+        for user, page_rank, similarity in users_page_ranks:
+            print('#######', user, f'Page Rank: {page_rank:.3f}', f'Attitude Similarity: {similarity:.3f}', file=sys.stdout)
+            print_thread_links(users_threads, user, game_id, stream=sys.stdout)
+            print('#' * 50, '\n', file=sys.stdout)
+
+        print('-' * 90, file=sys.stdout)
 
 
 if __name__ == '__main__':
