@@ -15,7 +15,7 @@ In this project we will be trying to analyze the interaction between BGG communi
 
 ---
 ## The main goal of the project is:
-    We want to build application which helps BGG users to choose suitable boardgame for them. Just for this purpose we want to extact expert-users and reviews for considering boardgame, using its forums interactions analysis. Moreover, we want to pick such top-k experts among diverse set, that their boardgame preferencies are similiar to a considered user.
+We want to build application which helps BGG users to choose suitable boardgame for them. Just for this purpose we want to extact expert-users and reviews for considering boardgame, using its forums interactions analysis. Moreover, we want to pick such top-k experts among diverse set, that their boardgame preferencies are similiar to a considered user.
 
 ## We implemented:
 There is no any open data to solve our task. Moreover, forums information, boardgames lists update in a real-time, that`s why we can just get some dataset. But there is XML-API to the bgg site.
