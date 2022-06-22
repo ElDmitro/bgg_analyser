@@ -11,7 +11,7 @@ BGG is the largest and most popular platform for board games. Also, BGG Rating i
 
 BGG provides access to data related to products on the board game market, as well as to the preferences of its users (they can rate different games on the site) and, moreover, to messages and published posts on the forum. This access is provided by means of their XML API: https://boardgamegeek.com/wiki/page/BGG_XML_API2
 
-In this project we will be trying to analyze the interaction between BGG community members within the framework of the forum in a cross-section by categories of board games. The main goal of the project is to identify and eliminate clearly biased user reviews from the total number as they are caused by the user's antipathy to this type of games. And in turn, to find experts for the relevant board games, whose tastes are more likely to coincide with the user who requested an opinion about the board game.
+In this project we will be trying to analyze the interaction between BGG community members within the framework of the forum in a cross-section by categories of board games. The main goal of the project is to identify and eliminate clearly biased user reviews from the total number as they are caused by the user\'s antipathy to this type of games. And in turn, to find experts for the relevant board games, whose tastes are more likely to coincide with the user who requested an opinion about the board game.
 
 ---
 ## The main goal of the project is:
