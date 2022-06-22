@@ -15,14 +15,14 @@ In this project we will be trying to analyze the interaction between BGG communi
 
 ---
 ## The main goal of the project is:
-    We want to build application which helps BGG users to choose suitable boardgame for them. Just for this purpose we want to extact expert-users and reviews for considering boardgame, using its forums` interactions analysis. Moreover, we want to pick such top-k experts among diverse set, that their boardgame preferencies are similiar to a considered user.
+    We want to build application which helps BGG users to choose suitable boardgame for them. Just for this purpose we want to extact expert-users and reviews for considering boardgame, using its forums interactions analysis. Moreover, we want to pick such top-k experts among diverse set, that their boardgame preferencies are similiar to a considered user.
 
 ## We implemented:
 There is no any open data to solve our task. Moreover, forums information, boardgames lists update in a real-time, that`s why we can just get some dataset. But there is XML-API to the bgg site.
 * That is why we implemented our own python-client for XML-api (`bgg_client` subfolder). It contains Sessions construction mechanisms and classes which encapsulate BGG entities.
 * We constructed mechanisms to build forums interactions-graph. (there is an example of use in `experiment.ipynb` notebook. Core mechanics provided in core application runner `__main__.py`)
 * We implemented graph-analysis pipeline, which gives us apportunity to extract expert users from the graph (there is an example of use in `experiment.ipynb` notebook. Core mechanics provided in core application runner `__main__.py`)
-* We implemented our own CollaborativeFilterring (in particular, Latent Factor Model) package. It gives us an apportunity to construct collaborative embeddings of users preferencies, based on ratings their set on the platform for boardgames. Therefore, we earn an apportunity to evaluate users similarities. That`s how we extract suitable for each user expert. (there is an example of use in `experiment.ipynb` notebook. Core mechanics provided in core application runner `__main__.py`)
+* We implemented our own CollaborativeFilterring (in particular, Latent Factor Model) package. It gives us an apportunity to construct collaborative embeddings of users preferencies, based on ratings their set on the platform for boardgames. Therefore, we earn an apportunity to evaluate users similarities. That\`s how we extract suitable for each user expert. (there is an example of use in `experiment.ipynb` notebook. Core mechanics provided in core application runner `__main__.py`)
 
 
 ## Notes:
